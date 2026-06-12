@@ -45,7 +45,9 @@ models/checkpoints/
 
 # Secrets & credentials
 .env
-.env.*
+.env.local
+.env.production
+.env.development
 *.key
 *.pem
 secrets/
