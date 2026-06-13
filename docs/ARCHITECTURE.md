@@ -7,8 +7,8 @@ Two-stage pipeline: statistical/ML detection first, LLM narrative second. The LL
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                     EVENT INGESTION LAYER                        │
-│  logon.csv | email.csv | file.csv | http.csv | device.csv       │
-│  + injected financial context (Murex, Bloomberg, SWIFT, etc.)   │
+│  data_access_logs.csv (1,201 events) + user_profiles.csv        │
+│  + SG financial context layer (Murex, Calypso, Workday, etc.)   │
 └────────────────────────────┬────────────────────────────────────┘
                              │
                              v

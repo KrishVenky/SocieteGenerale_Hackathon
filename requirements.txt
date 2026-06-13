@@ -19,7 +19,7 @@ node2vec==0.4.6
 sdv==1.15.0
 
 # AI
-anthropic==0.40.0
+groq==0.11.0
 
 # Viz
 plotly==5.24.1
