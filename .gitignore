@@ -80,3 +80,7 @@ htmlcov/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Submission files
+*.docx
+*.pptx
