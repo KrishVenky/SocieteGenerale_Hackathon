@@ -3,11 +3,11 @@ WatchDog: Terminal Anomaly Report
 ----------------------------------
 Usage:
   python scripts/report.py                   # top 20 alerts, threshold 65
-  python scripts/report.py --top 10          # top 10
-  python scripts/report.py --threshold 70    # stricter threshold
+  python scripts/report.py --top 10
+  python scripts/report.py --threshold 70
   python scripts/report.py --severity CRITICAL
-  python scripts/report.py --no-color        # plain text (for piping)
-  python scripts/report.py --demo            # show the 4 scripted personas
+  python scripts/report.py --no-color
+  python scripts/report.py --demo            # 4 scripted demo personas
 """
 
 from __future__ import annotations
@@ -22,7 +22,6 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
-# Force UTF-8 output on Windows
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -50,14 +49,12 @@ DIM    = "\033[2m"
 BOLD   = "\033[1m"
 RESET  = "\033[0m"
 
-SEV_COLOR = {
-    "CRITICAL": RED,
-    "HIGH":     YELLOW,
-    "MEDIUM":   CYAN,
-    "LOW":      GREEN,
-}
+SEV_COLOR = {"CRITICAL": RED, "HIGH": YELLOW, "MEDIUM": CYAN, "LOW": GREEN}
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+def sc(sev: str) -> str:
+    return _c(SEV_COLOR.get(sev, WHITE))
+
+# ── Data helpers ──────────────────────────────────────────────────────────────
 
 def _safe_list(val) -> list:
     if isinstance(val, list):
@@ -69,22 +66,23 @@ def _safe_list(val) -> list:
             pass
     return []
 
-
-def _col(code: str) -> str:
-    return code if USE_COLOR else ""
-
-
-def _sev_col(sev: str) -> str:
-    return _col(SEV_COLOR.get(sev, WHITE))
-
+def _tenure(hire_date: str) -> str:
+    try:
+        hd = pd.to_datetime(hire_date)
+        months = max(0, int((datetime.now() - hd.to_pydatetime()).days / 30))
+        if months < 12:
+            return f"{months} months tenure"
+        return f"{months // 12} yr tenure"
+    except Exception:
+        return ""
 
 def _anomaly_label(signals: list[str]) -> str:
     if "off_hours_export" in signals or "high_sens_export" in signals:
-        return "DATA EXFILTRATION RISK"
+        return "BULK EXPORT OF RESTRICTED DATA"
     if "dormant_activation" in signals:
         return "DORMANT ACCOUNT REACTIVATION"
     if "failure_burst" in signals:
-        return "BRUTE FORCE PATTERN"
+        return "BRUTE FORCE / CREDENTIAL ATTACK"
     if "new_resource_off_hours_admin" in signals or "off_hours_admin" in signals:
         return "OFF-HOURS ADMIN OPERATION"
     if "service_acct_anomaly" in signals or "service_acct_new_resource" in signals:
@@ -92,28 +90,27 @@ def _anomaly_label(signals: list[str]) -> str:
     if "resource_scope_violation" in signals:
         return "UNAUTHORIZED RESOURCE ACCESS"
     if "is_new_ip" in signals:
-        return "NEW SOURCE IP / UNUSUAL LOCATION"
+        return "UNUSUAL SOURCE IP / LOCATION"
     return "SUSPICIOUS ACCESS PATTERN"
 
-
 _SIGNAL_LABELS = {
-    "off_hours_export":          "Export action during off-hours — exfiltration risk",
-    "high_sens_export":          "Export of high-sensitivity / restricted data",
-    "dormant_activation":        "Account dormant before this event — possible compromise",
-    "is_new_ip":                 "Source IP not seen in 90-day baseline history",
-    "resource_scope_violation":  "System not in user's approved access list",
-    "service_acct_anomaly":      "Service account active outside business hours",
-    "service_acct_new_resource": "Service account accessed a resource type it never has before",
+    "off_hours_export":             "Export action during off-hours (exfiltration risk)",
+    "high_sens_export":             "Export of high-sensitivity / Restricted data",
+    "dormant_activation":           "Account was dormant before this event",
+    "is_new_ip":                    "Source IP not seen in 90-day baseline history",
+    "resource_scope_violation":     "System not in user's approved access list",
+    "service_acct_anomaly":         "Service account active outside business hours",
+    "service_acct_new_resource":    "Service account accessed resource type never seen before",
     "new_resource_off_hours_admin": "Admin operation on a new resource after hours",
-    "failure_burst":             "Multiple auth failures followed by success — brute force",
-    "is_export":                 "Export action on a restricted-classification system",
-    "cross_dept_access":         "Accessed resources outside department scope",
-    "off_hours_admin":           "Admin operation during off-hours — elevated risk window",
-    "is_admin":                  "Admin-level operation — elevated impact if malicious",
-    "volume_spike":              "Unusually high event volume vs 30-day rolling baseline",
-    "sensitivity_escalation":    "Accessed higher sensitivity than historical maximum",
+    "off_hours_admin":              "Admin operation outside business hours",
+    "failure_burst":                "Multiple auth failures followed by success",
+    "is_export":                    "Export action on a Restricted-class system",
+    "cross_dept_access":            "Accessed resources outside department scope",
+    "is_admin":                     "Admin-level operation (elevated blast radius)",
+    "is_new_resource":              "First-ever access to this resource type for this user",
+    "volume_spike":                 "Unusually high event volume vs 30-day rolling baseline",
+    "sensitivity_escalation":       "Accessed higher sensitivity level than historical max",
 }
-
 
 def _recommendation(score: int) -> str:
     if score >= 85:
@@ -122,116 +119,130 @@ def _recommendation(score: int) -> str:
         return "ESCALATE to CISO + investigate within 1 hour"
     if score >= 50:
         return "FLAG for review + monitor user activity 24h"
-    return "MONITOR — low risk, log for compliance"
+    return "MONITOR"
 
+# ── Print helpers ─────────────────────────────────────────────────────────────
 
-# ── Rendering ─────────────────────────────────────────────────────────────────
+W = 62
+
+def hr(char: str = "=") -> None:
+    print(_c(DIM) + char * W + _c(RESET))
+
+def blank() -> None:
+    print()
 
 def print_header() -> None:
-    date_str = datetime.now().strftime("%Y-%m-%d  %H:%M")
-    width = 62
-    print()
-    print(_col(BOLD) + _col(WHITE) + "=" * width + _col(RESET))
-    print(_col(BOLD) + _col(WHITE) +
-          f"  WATCHDOG: DATA ACCESS ANOMALY REPORT".ljust(width - 1) + _col(RESET))
-    print(_col(DIM) +
-          f"  {date_str}  ·  GCN + Bi-LSTM + Peer Group Analysis".ljust(width - 1) + _col(RESET))
-    print(_col(BOLD) + _col(WHITE) + "=" * width + _col(RESET))
-    print()
-
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    blank()
+    hr("=")
+    print(_c(BOLD) + _c(WHITE) + f"WATCHDOG: DATA ACCESS ANOMALY REPORT  {date_str}" + _c(RESET))
+    print(_c(DIM) + "GCN + Bi-LSTM + Peer Group Analysis  |  PS4  |  Societe Generale" + _c(RESET))
+    hr("=")
+    blank()
 
 def print_summary(df: pd.DataFrame, threshold: int) -> None:
     n_alerts = int((df["risk_score"] >= threshold).sum())
     n_crit   = int((df["risk_score"] >= 85).sum())
     n_high   = int(((df["risk_score"] >= 70) & (df["risk_score"] < 85)).sum())
     n_med    = int(((df["risk_score"] >= 50) & (df["risk_score"] < 70)).sum())
+    print(
+        f"Events processed: {len(df):,}  |  "
+        f"Alerts (>={threshold}): {n_alerts}  |  "
+        f"{_c(RED)}Critical: {n_crit}{_c(RESET)}  |  "
+        f"{_c(YELLOW)}High: {n_high}{_c(RESET)}  |  "
+        f"{_c(CYAN)}Medium: {n_med}{_c(RESET)}"
+    )
+    blank()
 
-    print(f"  {_col(WHITE)}Events processed :{_col(RESET)}  {len(df):,}")
-    print(f"  {_col(WHITE)}Alerts (>={threshold})  :{_col(RESET)}  {n_alerts:,}")
-    print(f"  {_col(RED  )}Critical  (>=85) :{_col(RESET)}  {n_crit}")
-    print(f"  {_col(YELLOW)}High      (70-84):{_col(RESET)}  {n_high}")
-    print(f"  {_col(CYAN )}Medium    (50-69):{_col(RESET)}  {n_med}")
-    print()
+# ── Alert block ───────────────────────────────────────────────────────────────
 
+def print_alert(rank: int, row: pd.Series | dict, persona: str = "") -> None:
+    get = (lambda k, d=None: row.get(k, d)) if isinstance(row, dict) else \
+          (lambda k, d=None: row.get(k, d))
 
-def print_alert(rank: int, row: pd.Series | dict) -> None:
-    if isinstance(row, dict):
-        get = row.get
-    else:
-        get = lambda k, d=None: row.get(k, d) if hasattr(row, "get") else getattr(row, k, d)
-
-    sev      = str(get("severity", "LOW"))
-    score    = int(get("risk_score", 0))
-    color    = _sev_col(sev)
-    username = str(get("username", ""))
-    action   = str(get("action", ""))
-    resource = str(get("resource", ""))
+    sev       = str(get("severity", "LOW"))
+    score     = int(get("risk_score", 0))
+    color     = sc(sev)
+    username  = str(get("username", ""))
+    action    = str(get("action", ""))
+    resource  = str(get("resource", ""))
     sg_name, sg_class = SG_RESOURCE_MAP.get(resource, (resource, "Unknown"))
-    dept       = str(get("department", ""))
-    sg_dept    = SG_DEPT_MAP.get(dept, dept)
-    job_title  = str(get("job_title", ""))
-    priv       = str(get("privilege_level", ""))
-    ts         = str(get("timestamp", ""))
-    time_class = str(get("time_classification", ""))
-    status     = str(get("status", ""))
-    source_ip  = str(get("source_ip", ""))
-    inactive   = int(get("days_inactive", 0) or 0)
-    peer_dev   = float(get("peer_deviation_pct", 0) or 0)
-    signals    = _safe_list(get("triggered_signals"))
-    mitre      = _safe_list(get("mitre_techniques"))
+    dept      = str(get("department", ""))
+    sg_dept   = SG_DEPT_MAP.get(dept, dept)
+    job_title = str(get("job_title", ""))
+    priv      = str(get("privilege_level", ""))
+    ts        = str(get("timestamp", ""))
+    time_cls  = str(get("time_classification", ""))
+    status    = str(get("status", ""))
+    source_ip = str(get("source_ip", ""))
+    inactive  = int(get("days_inactive", 0) or 0)
+    hire_date = str(get("hire_date", ""))
+    peer_dev  = float(get("peer_deviation_pct", 0) or 0)
+    signals   = _safe_list(get("triggered_signals"))
+    mitre     = _safe_list(get("mitre_techniques"))
 
-    anomaly_lbl = _anomaly_label(signals)
+    label = _anomaly_label(signals)
+    tenure = _tenure(hire_date)
 
-    print(f"  {color}{BOLD}Alert {rank}: {anomaly_lbl}{RESET}")
-    print(f"  {_col(WHITE)}User       :{_col(RESET)} {_col(BOLD)}{username}{_col(RESET)}"
-          f"  ({sg_dept} · {job_title} · {priv})")
-    print(f"  {_col(WHITE)}Action     :{_col(RESET)} {action}")
-    print(f"  {_col(WHITE)}System     :{_col(RESET)} {sg_name}"
-          f"  {color}[{sg_class}]{_col(RESET)}")
-    print(f"  {_col(WHITE)}Time       :{_col(RESET)} {ts}  {color}({time_class}){_col(RESET)}")
-    print(f"  {_col(WHITE)}Source IP  :{_col(RESET)} {source_ip}")
-    status_col = _col(RED) if status == "failure" else _col(GREEN)
-    print(f"  {_col(WHITE)}Status     :{_col(RESET)} {status_col}{status}{_col(RESET)}")
-    print(f"  {_col(WHITE)}Risk Score :{_col(RESET)} {color}{BOLD}{score}/100  {sev}{_col(RESET)}")
-    print()
+    if persona:
+        print(_c(BLUE) + _c(BOLD) + f"[ {persona} ]" + _c(RESET))
 
-    # Context bullets
-    context_lines: list[str] = []
-    for sig in signals[:5]:
-        label = _SIGNAL_LABELS.get(sig, sig.replace("_", " "))
-        context_lines.append(label)
+    print(color + _c(BOLD) + f"Alert {rank}: {label}" + _c(RESET))
+    blank()
+
+    user_meta = f"{sg_dept}"
+    if job_title:
+        user_meta += f", {job_title}"
+    if tenure:
+        user_meta += f", {tenure}"
     if inactive > 0:
-        context_lines.append(f"Account inactive {inactive}d before this event")
+        user_meta += f", {inactive}d inactive"
+
+    print(f"User:      {_c(BOLD)}{username}{_c(RESET)} ({user_meta})")
+    print(f"Privilege: {priv}")
+    print(f"Action:    {action}")
+    print(f"System:    {sg_name}  {color}[{sg_class}]{_c(RESET)}")
+    print(f"Time:      {ts}  {color}({time_cls}){_c(RESET)}")
+    print(f"Source IP: {source_ip}")
+    status_col = _c(RED) if status == "failure" else _c(GREEN)
+    print(f"Status:    {status_col}{status}{_c(RESET)}")
+    print(f"Risk Score:{color} {_c(BOLD)}{score}/100  {sev}{_c(RESET)}")
+
+    blank()
+
+    # Context block
+    ctx: list[str] = []
+    for sig in signals:
+        lbl = _SIGNAL_LABELS.get(sig, sig.replace("_", " "))
+        ctx.append(lbl)
     if peer_dev > 0:
-        context_lines.append(
-            f"Peer deviation: +{peer_dev:.0f}% vs {sg_dept} department baseline"
-        )
+        ctx.append(f"Peer deviation +{peer_dev:.0f}% vs {sg_dept} baseline")
     if mitre:
         m_str = ", ".join(
             f"{m['technique_id']} ({m.get('tactic', '?')})" for m in mitre[:3]
         )
-        context_lines.append(f"MITRE ATT&CK: {m_str}")
+        ctx.append(f"MITRE ATT&CK: {m_str}")
 
-    if context_lines:
-        print(f"  {_col(DIM)}Context:{_col(RESET)}")
-        for line in context_lines:
-            print(f"  {_col(DIM)}  - {line}{_col(RESET)}")
-        print()
+    if ctx:
+        print("Context:")
+        for line in ctx:
+            print(_c(DIM) + f"  - {line}" + _c(RESET))
+        blank()
 
     rec = _recommendation(score)
-    print(f"  {_col(WHITE)}Recommendation:{_col(RESET)} {color}{_col(BOLD)}{rec}{_col(RESET)}")
-    print(f"  {_col(DIM)}{'─' * 58}{_col(RESET)}")
-    print()
+    print(f"Recommendation: {color}{_c(BOLD)}{rec}{_c(RESET)}")
+    hr("-")
+    blank()
 
 
-# ── Demo mode (4 scripted personas) ───────────────────────────────────────────
+# ── Demo mode ─────────────────────────────────────────────────────────────────
 
 def run_demo() -> None:
     demo_path = ROOT / os.getenv(
         "DEMO_EVENTS_PATH", "data/processed/real/demo_replay/scripted_events.jsonl"
     )
     if not demo_path.exists():
-        print(f"  ERROR: demo events not found at {demo_path}", file=sys.stderr)
+        print(f"ERROR: demo events not found at {demo_path}", file=sys.stderr)
         sys.exit(1)
 
     events: list[dict] = []
@@ -240,55 +251,42 @@ def run_demo() -> None:
             line = line.strip()
             if line:
                 events.append(json.loads(line))
-
-    events = sorted(
-        events, key=lambda e: e.get("scored", {}).get("risk_score", 0), reverse=True
-    )
+    events = sorted(events, key=lambda e: e.get("scored", {}).get("risk_score", 0), reverse=True)
 
     print_header()
-    print(f"  {_col(BOLD)}Demo Replay — 4 Pre-Scripted Anomaly Personas{_col(RESET)}")
-    print(f"  {_col(DIM)}Ground-truth labelled events · sorted by risk score{_col(RESET)}")
-    print()
+    print(_c(BOLD) + "Demo Replay  --  4 Pre-Scripted Anomaly Personas" + _c(RESET))
+    print(_c(DIM) + "Ground-truth labelled events, sorted by risk score" + _c(RESET))
+    blank()
 
     for rank, ev in enumerate(events, 1):
         event   = ev.get("event", {})
         profile = ev.get("profile", {})
         scored  = ev.get("scored", {})
-
         flat = {
-            **event,
-            **profile,
-            "risk_score":        scored.get("risk_score", 0),
-            "severity":          scored.get("severity", "LOW"),
-            "triggered_signals": scored.get("triggered_signals", []),
-            "mitre_techniques":  scored.get("mitre_techniques", []),
+            **event, **profile,
+            "risk_score":         scored.get("risk_score", 0),
+            "severity":           scored.get("severity", "LOW"),
+            "triggered_signals":  scored.get("triggered_signals", []),
+            "mitre_techniques":   scored.get("mitre_techniques", []),
             "peer_deviation_pct": ev.get("peer_deviation_pct", 0),
         }
-        persona = ev.get("persona", "")
-        if persona:
-            print(f"  {_col(BLUE)}{_col(BOLD)}[ {persona} ]{_col(RESET)}")
-        print_alert(rank, flat)
+        print_alert(rank, flat, persona=ev.get("persona", ""))
 
     _print_footer()
 
 
-# ── Main report ───────────────────────────────────────────────────────────────
+# ── Live report ───────────────────────────────────────────────────────────────
 
 def run_report(args: argparse.Namespace) -> None:
-    features_path = ROOT / os.getenv(
-        "FEATURES_PATH", "data/processed/real/features.parquet"
-    )
+    features_path = ROOT / os.getenv("FEATURES_PATH", "data/processed/real/features.parquet")
     if not features_path.exists():
-        print(f"  ERROR: features not found at {features_path}", file=sys.stderr)
-        print("  Run: python scripts/prepare_data.py", file=sys.stderr)
+        print(f"ERROR: {features_path} not found -- run scripts/prepare_data.py", file=sys.stderr)
         sys.exit(1)
 
     df = pd.read_parquet(features_path)
     df["timestamp"] = pd.to_datetime(df["timestamp"])
 
-    alerts = df[df["risk_score"] >= args.threshold].sort_values(
-        "risk_score", ascending=False
-    )
+    alerts = df[df["risk_score"] >= args.threshold].sort_values("risk_score", ascending=False)
     if args.severity:
         alerts = alerts[alerts["severity"] == args.severity]
     alerts = alerts.head(args.top)
@@ -296,12 +294,12 @@ def run_report(args: argparse.Namespace) -> None:
     print_header()
     print_summary(df, args.threshold)
 
-    sev_order  = ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
-    sev_header = {
-        "CRITICAL": f"{_col(RED)}{_col(BOLD)}[!!] CRITICAL ALERTS -- Immediate Investigation{_col(RESET)}",
-        "HIGH":     f"{_col(YELLOW)}{_col(BOLD)}[!]  HIGH ALERTS -- Escalate within 1 hour{_col(RESET)}",
-        "MEDIUM":   f"{_col(CYAN)}{_col(BOLD)}[~]  MEDIUM ALERTS -- Review within 24 hours{_col(RESET)}",
-        "LOW":      f"{_col(GREEN)}{_col(BOLD)}[-]  LOW ALERTS -- Monitor{_col(RESET)}",
+    sev_order = ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+    sev_labels = {
+        "CRITICAL": ("Critical Alerts (Immediate Investigation)", RED),
+        "HIGH":     ("High Alerts (Escalate within 1 hour)",     YELLOW),
+        "MEDIUM":   ("Medium Alerts (Review within 24 hours)",   CYAN),
+        "LOW":      ("Low Alerts (Monitor)",                     GREEN),
     }
 
     rank = 1
@@ -309,10 +307,11 @@ def run_report(args: argparse.Namespace) -> None:
         subset = alerts[alerts["severity"] == sev]
         if subset.empty:
             continue
-        print(f"  {'─' * 58}")
-        print(f"  {sev_header[sev]}")
-        print(f"  {'─' * 58}")
-        print()
+        label, col = sev_labels[sev]
+        hr("=")
+        print(_c(col) + _c(BOLD) + label + _c(RESET))
+        hr("=")
+        blank()
         for _, row in subset.iterrows():
             print_alert(rank, row)
             rank += 1
@@ -321,14 +320,11 @@ def run_report(args: argparse.Namespace) -> None:
 
 
 def _print_footer() -> None:
-    width = 62
-    print(_col(BOLD) + _col(WHITE) + "=" * width + _col(RESET))
-    print(_col(DIM) +
-          "  WatchDog v1.0  ·  PS4 Evaluation: P=80.6%  R=83.3%  F1=0.820" + _col(RESET))
-    print(_col(DIM) +
-          "  Dashboard: http://localhost:8000  ·  uvicorn app.server:app --port 8000" + _col(RESET))
-    print(_col(BOLD) + _col(WHITE) + "=" * width + _col(RESET))
-    print()
+    hr("=")
+    print(_c(DIM) + "WatchDog v1.0  |  P=80.6%  R=83.3%  F1=0.820  |  PS4 PASS" + _c(RESET))
+    print(_c(DIM) + "Dashboard --> uvicorn app.server:app --port 8000  then localhost:8000" + _c(RESET))
+    hr("=")
+    blank()
 
 
 # ── Entry ─────────────────────────────────────────────────────────────────────
@@ -336,19 +332,12 @@ def _print_footer() -> None:
 def main() -> None:
     global USE_COLOR, RED, YELLOW, CYAN, GREEN, BLUE, WHITE, DIM, BOLD, RESET
 
-    p = argparse.ArgumentParser(
-        description="WatchDog: terminal anomaly report"
-    )
-    p.add_argument("--top",       type=int, default=20,
-                   help="Top N alerts (default: 20)")
-    p.add_argument("--threshold", type=int, default=65,
-                   help="Risk score threshold (default: 65)")
-    p.add_argument("--severity",  choices=["CRITICAL", "HIGH", "MEDIUM", "LOW"],
-                   help="Filter to one severity level")
-    p.add_argument("--demo",      action="store_true",
-                   help="Show the 4 scripted demo personas instead of live queue")
-    p.add_argument("--no-color",  action="store_true",
-                   help="Disable ANSI colours (for piping/logging)")
+    p = argparse.ArgumentParser(description="WatchDog: terminal anomaly report")
+    p.add_argument("--top",       type=int, default=20)
+    p.add_argument("--threshold", type=int, default=65)
+    p.add_argument("--severity",  choices=["CRITICAL", "HIGH", "MEDIUM", "LOW"])
+    p.add_argument("--demo",      action="store_true", help="Show 4 scripted demo personas")
+    p.add_argument("--no-color",  action="store_true")
     args = p.parse_args()
 
     if args.no_color:
