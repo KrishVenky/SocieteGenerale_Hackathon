@@ -114,6 +114,18 @@ def severity_badge(sev: str) -> str:
     return f'<span style="background:{color};color:#fff;border-radius:4px;padding:2px 8px;font-size:0.75rem;font-weight:700">{sev}</span>'
 
 
+def _safe_list(val) -> list:
+    """Return val as a list whether it came from parquet (already a list) or JSON string."""
+    if isinstance(val, list):
+        return val
+    if isinstance(val, str) and val.strip():
+        try:
+            return json.loads(val)
+        except Exception:
+            pass
+    return []
+
+
 def risk_gauge(score: int) -> go.Figure:
     color = (
         "#e63946" if score >= 85 else
@@ -125,22 +137,25 @@ def risk_gauge(score: int) -> go.Figure:
         mode="gauge+number",
         value=score,
         domain={"x": [0, 1], "y": [0, 1]},
+        number={"font": {"size": 36, "color": color}},
         gauge={
-            "axis": {"range": [0, 100], "tickwidth": 1},
-            "bar": {"color": color, "thickness": 0.3},
+            "axis": {"range": [0, 100], "tickwidth": 1, "tickcolor": "#888"},
+            "bar": {"color": color, "thickness": 0.35},
+            "bgcolor": "white",
+            "borderwidth": 0,
             "steps": [
-                {"range": [0, 50],  "color": "#1a1e2e"},
-                {"range": [50, 70], "color": "#1e2336"},
-                {"range": [70, 85], "color": "#231f1f"},
-                {"range": [85, 100],"color": "#2a1818"},
+                {"range": [0, 50],  "color": "#f3f4f6"},
+                {"range": [50, 70], "color": "#fef3c7"},
+                {"range": [70, 85], "color": "#fee2e2"},
+                {"range": [85, 100],"color": "#fecaca"},
             ],
-            "threshold": {"line": {"color": color, "width": 4}, "value": score},
+            "threshold": {"line": {"color": color, "width": 3}, "value": score},
         },
     ))
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        height=180, margin=dict(t=20, b=0, l=20, r=20),
-        font={"color": "#fff"},
+        height=200, margin=dict(t=10, b=10, l=20, r=20),
+        font={"color": "#333"},
     )
     return fig
 
@@ -206,7 +221,7 @@ def kill_chain_chart(triggered_signals: list[str]) -> go.Figure:
 
 # ── Incident detail panel ─────────────────────────────────────────────────────
 
-def render_incident_detail(alert: dict, df: pd.DataFrame | None) -> None:
+def render_incident_detail(alert: dict, df: pd.DataFrame | None, key_suffix: str = "", exp_key: str | None = None) -> None:
     event   = alert["event"]
     profile = alert["profile"]
     scored  = alert["scored"]
@@ -217,10 +232,14 @@ def render_incident_detail(alert: dict, df: pd.DataFrame | None) -> None:
     sg_name, sg_class = SG_RESOURCE_MAP.get(resource, (resource, "Unknown"))
     sg_dept = SG_DEPT_MAP.get(profile.get("department", ""), profile.get("department", ""))
 
+    # Unique key prefix so multiple open expanders don't clash on plotly chart IDs
+    _k = f"{event['user_id']}_{str(event['timestamp']).replace(' ', '_').replace(':', '')}{key_suffix}"
+
     col1, col2, col3 = st.columns([1, 1.8, 1.5])
 
     with col1:
-        st.plotly_chart(risk_gauge(scored["risk_score"]), use_container_width=True)
+        st.plotly_chart(risk_gauge(scored["risk_score"]), use_container_width=True,
+                        key=f"gauge_{_k}")
         st.markdown(f"**Privilege:** `{profile.get('privilege_level','').upper()}`")
         st.markdown(f"**{event['username']}**")
         st.markdown(f"{profile.get('job_title','')} · {sg_dept}")
@@ -254,30 +273,42 @@ def render_incident_detail(alert: dict, df: pd.DataFrame | None) -> None:
         c3.metric("Peer Graph", f"{scores.get('graph_divergence', 0):.0f}/100")
 
         st.markdown("#### Kill Chain Coverage")
-        st.plotly_chart(kill_chain_chart(signals), use_container_width=True)
+        st.plotly_chart(kill_chain_chart(signals), use_container_width=True,
+                        key=f"kc_{_k}")
 
     with col3:
         st.markdown("#### LLaMA 3.3 Narrative")
-        narrative_box = st.empty()
-        if st.button("Generate Narrative", key=f"narr_{event['user_id']}_{event['timestamp']}"):
-            with narrative_box.container():
-                st.markdown('<div class="narrative-box">', unsafe_allow_html=True)
-                text_so_far = ""
-                placeholder = st.empty()
-                try:
-                    narrator = NarratorEngine()
-                    for chunk in narrator.stream(alert):
-                        text_so_far += chunk
-                        placeholder.markdown(text_so_far)
-                except Exception as e:
-                    st.error(f"Narrative error: {e}")
-                st.markdown("</div>", unsafe_allow_html=True)
+        narr_key = f"narrative_{_k}"
+        if st.button("Generate Narrative", key=f"narr_{_k}"):
+            st.session_state.pop(narr_key, None)
+            try:
+                narrator = NarratorEngine()
+                ph = st.empty()
+                text = ""
+                for chunk in narrator.stream(alert):
+                    text += chunk
+                    ph.markdown(text)
+                st.session_state[narr_key] = text
+            except Exception as e:
+                st.error(f"Narrative error: {e}")
+
+        if st.session_state.get(narr_key):
+            st.markdown(
+                f'<div class="narrative-box">{st.session_state[narr_key]}</div>',
+                unsafe_allow_html=True,
+            )
 
         st.markdown("#### Response Actions")
+        action_key = f"action_{_k}"
         c1, c2 = st.columns(2)
-        c1.button("Freeze Account", key=f"freeze_{event['user_id']}")
-        c2.button("Escalate to CISO", key=f"escalate_{event['user_id']}")
-        st.button("Preserve Audit Trail", key=f"audit_{event['user_id']}")
+        if c1.button("Freeze Account", key=f"freeze_{_k}"):
+            st.session_state[action_key] = f"✅ Account {event['username']} frozen — AD session revoked"
+        if c2.button("Escalate to CISO", key=f"escalate_{_k}"):
+            st.session_state[action_key] = "✅ Escalated to CISO — ticket #INC-2026-0471 opened"
+        if st.button("Preserve Audit Trail", key=f"audit_{_k}"):
+            st.session_state[action_key] = "✅ Audit log snapshot preserved to immutable S3"
+        if action_msg := st.session_state.get(action_key):
+            st.success(action_msg)
 
         peer_dev = alert.get("peer_deviation_pct", 0)
         if peer_dev:
@@ -291,7 +322,8 @@ def render_incident_detail(alert: dict, df: pd.DataFrame | None) -> None:
 
     if df is not None:
         st.markdown("#### Behavioral Baseline — Daily Activity")
-        st.plotly_chart(baseline_chart(df, event["user_id"]), use_container_width=True)
+        st.plotly_chart(baseline_chart(df, event["user_id"]), use_container_width=True,
+                        key=f"baseline_{_k}")
 
 
 # ── Architecture tab ──────────────────────────────────────────────────────────
@@ -390,6 +422,7 @@ def main():
 
     # ── Live incident queue ───────────────────────────────────────────────────
     with tab_live:
+      try:
         st.markdown(f"**Alerts with risk >= {THRESHOLD}  ·  sorted by severity**")
 
         if len(alerts_df) == 0:
@@ -399,12 +432,13 @@ def main():
             for _, row in display.iterrows():
                 sg_name, _ = SG_RESOURCE_MAP.get(row["resource"], (row["resource"], ""))
                 sev   = row["severity"]
-                badge = severity_badge(sev)
+                uid   = f"{row['user_id']}_{str(row['timestamp']).replace(' ', '_').replace(':', '')}"
+                exp_key = f"exp_{uid}"
 
                 with st.expander(
                     f"[{row['risk_score']:3d}]  {row['username']}  ·  {row['action']}  ·  "
                     f"{sg_name}  ·  {row['time_classification']}",
-                    expanded=False,
+                    expanded=st.session_state.get(exp_key, False),
                 ):
                     alert = {
                         "event": {k: str(row[k]) for k in
@@ -416,8 +450,8 @@ def main():
                         "scored": {
                             "risk_score": int(row["risk_score"]),
                             "severity": str(row["severity"]),
-                            "triggered_signals": json.loads(row.get("triggered_signals", "[]")),
-                            "mitre_techniques": json.loads(row.get("mitre_techniques", "[]")),
+                            "triggered_signals": _safe_list(row.get("triggered_signals")),
+                            "mitre_techniques": _safe_list(row.get("mitre_techniques")),
                             "component_scores": {
                                 "behavioral": float(row.get("behavioral_score", 0)),
                                 "lstm_sequence": float(row.get("lstm_component", 0)),
@@ -426,10 +460,14 @@ def main():
                         },
                         "peer_deviation_pct": float(row.get("peer_deviation_pct", 0)),
                     }
-                    render_incident_detail(alert, df)
+                    render_incident_detail(alert, df, exp_key=exp_key)
+      except Exception as _tab_err:
+        st.error(f"Live Queue error: {_tab_err}")
+        import traceback as _tb; st.code(_tb.format_exc())
 
     # ── Demo replay ───────────────────────────────────────────────────────────
     with tab_demo:
+      try:
         st.markdown(
             "**Four pre-scripted anomaly scenarios · ground-truth labelled · "
             "sorted by risk score**"
@@ -444,19 +482,25 @@ def main():
                 persona = demo.get("persona", f"Scenario {i+1}")
                 sg_name, _ = SG_RESOURCE_MAP.get(event["resource"], (event["resource"], ""))
                 badge = severity_badge(scored["severity"])
+                d_uid   = f"{event['user_id']}_{str(event['timestamp']).replace(' ', '_').replace(':', '')}_demo"
+                d_exp_key = f"exp_{d_uid}"
 
                 with st.expander(
                     f"[{scored['risk_score']}/100]  {persona}  ·  {event['username']}  ·  {sg_name}",
-                    expanded=(i == 0),
+                    expanded=st.session_state.get(d_exp_key, i == 0),
                 ):
                     st.markdown(
                         f"{badge} &nbsp; **MITRE:** `{demo.get('mitre_label', '')}`",
                         unsafe_allow_html=True,
                     )
-                    render_incident_detail(demo, df)
+                    render_incident_detail(demo, df, key_suffix="_demo", exp_key=d_exp_key)
+      except Exception as _tab_err:
+        st.error(f"Demo Replay error: {_tab_err}")
+        import traceback as _tb; st.code(_tb.format_exc())
 
     # ── Analytics ─────────────────────────────────────────────────────────────
     with tab_stats:
+      try:
 
         # Performance numbers — actual measured metrics
         st.markdown("### System Performance (Measured on Synthetic Benchmark, threshold=78)")
@@ -559,9 +603,17 @@ def main():
         )
         st.plotly_chart(fig4, use_container_width=True)
 
+      except Exception as _tab_err:
+        st.error(f"Analytics error: {_tab_err}")
+        import traceback as _tb; st.code(_tb.format_exc())
+
     # ── Architecture ──────────────────────────────────────────────────────────
     with tab_arch:
+      try:
         render_architecture()
+      except Exception as _tab_err:
+        st.error(f"Architecture error: {_tab_err}")
+        import traceback as _tb; st.code(_tb.format_exc())
 
 
 if __name__ == "__main__":
