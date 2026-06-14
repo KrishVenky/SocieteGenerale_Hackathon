@@ -1,63 +1,42 @@
-# SG Hackathon - Insider Threat Detection System
-
+# WatchDog - Insider Threat Detection
 **Societe Generale Hackathon | PS4: Data Access Audit & Insider Threat Detection**
 
-A two-stage insider threat detection system combining graph ML anomaly detection with LLM-generated incident narratives, benchmarked on the CMU CERT r5.2 dataset with financial-sector context injection.
+Real-time insider threat detection combining behavioral baselining, graph ML, and Bi-LSTM sequence modeling on enterprise access logs.
 
 ---
 
 ## What It Does
 
-Ingests multi-source enterprise access logs, builds per-user and peer-group behavioral baselines, detects anomalies using a GCN + Bi-LSTM model, risk-ranks incidents, maps them to MITRE ATT&CK techniques, and generates streaming incident narratives via Claude Fable 5.
+Ingests raw access logs, builds per-user and peer-group behavioral baselines from log history, detects anomalies using a GCN-inspired + Bi-LSTM pipeline, risk-ranks each incident, maps it to a MITRE ATT&CK technique, and streams an LLM-generated incident narrative to a live dashboard.
 
-**Key output per incident**: risk score, confidence, behavioral deviation from peer group, kill chain stage, MITRE technique, and a plain-English incident report with recommended response steps.
+**Output per alert:** risk score (0-100), severity, behavioral deviation vs peer group, MITRE technique, kill chain stage, and a plain-English incident report with recommended response steps.
+
+---
+
+## Results (PS4 Evaluation Criteria)
+
+| Metric | Required | Our Result |
+|---|---|---|
+| Precision | >= 75% | **80.6%** |
+| Recall | >= 70% | **83.3%** |
+| F1 | >= 0.72 | **0.820** |
+
+Evaluated user-level at threshold 78 on a 150-user synthetic benchmark with 30 labeled anomaly users.
 
 ---
 
 ## Architecture
 
 ```
-Access Event Stream
-    → Behavioral Baseline Engine (rolling stats + peer group)
-    → Graph Construction (explicit user→resource + implicit peer graph)
-    → GCN + Bi-LSTM Anomaly Detector
-    → Risk Ranker (deviation × sensitivity × time-of-day)
-    → MITRE ATT&CK Mapper
-    → Claude Fable 5 Incident Narrative (streaming)
-    → Streamlit Dashboard
+Access Event Stream (data_access_logs.csv)
+    -> Behavioral Baseline Engine  (rolling 30-day stats, peer groups by dept)
+    -> Graph Construction          (NetworkX user-resource + implicit peer graph)
+    -> Bi-LSTM Autoencoder         (PyTorch, unsupervised, reconstruction error)
+    -> Risk Ranker                 (55% behavioral + 25% LSTM + 20% graph)
+    -> MITRE ATT&CK Mapper         (7 techniques, 6 tactics)
+    -> LLaMA 3.3-70B Narrative     (Groq, streaming, ~200 tok/s)
+    -> FastAPI Dashboard           (localhost:8000)
 ```
-
----
-
-## Dataset
-
-- **Base**: CMU CERT Insider Threat Dataset r5.2 : industry standard benchmark (3,995 users, 5 labeled insiders)
-- **Enriched**: Financial context injection (Murex, Bloomberg, SWIFT, Calypso system names; sensitivity tiers; business units)
-- **Scale**: SDV synthetic scale-up to 50k users preserving CERT distributions
-- **Reference**: LANL Unified Host & Network Dataset for enterprise-scale architecture validation
-
----
-
-## Performance Target
-
-| Model | AUC | Detection Rate | FPR |
-|---|---|---|---|
-| Our system (target) | 92-96% | >95% | <0.10% |
-| DeepLog baseline | 86.41% | 81.89% | 0.19% |
-| SOTA (arxiv 2512.18483) | 98.62% | 100% | 0.05% |
-
----
-
-## Tech Stack
-
-| Layer | Tool |
-|---|---|
-| Backend | Python 3.11 + FastAPI |
-| ML | scikit-learn, PyTorch, NetworkX |
-| AI Narrative | Claude Fable 5 (streaming) |
-| AI Triage | Claude Haiku 4.5 |
-| Frontend | Streamlit |
-| Data | pandas + SDV |
 
 ---
 
@@ -65,21 +44,32 @@ Access Event Stream
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+.venv\Scripts\activate        # Windows
 pip install -r requirements.txt
+```
 
-# Set API key
-export ANTHROPIC_API_KEY=your_key_here
+Copy `.env.example` to `.env`. The only key you need is optional:
 
-# Download CERT r5.2 dataset
-# https://kilthub.cmu.edu/articles/dataset/Insider_Threat_Test_Dataset/12841247
-# Place extracted files in data/raw/cert_r5.2/
+```
+GROQ_API_KEY=your_key_here    # free at console.groq.com - for narrative generation only
+```
 
-# Run data pipeline
+**The detection pipeline runs fully without any API key.** Risk scores, MITRE mapping, behavioral baselines, and the full alert queue work offline. The Groq key only enables the streaming LLM narrative panel in the dashboard.
+
+---
+
+## Run
+
+```bash
+# Prepare data (first time only)
 python scripts/prepare_data.py
 
-# Launch dashboard
-streamlit run app/dashboard.py
+# Terminal report (PS4-style output)
+python scripts/report.py --demo
+
+# Live dashboard
+uvicorn app.server:app --port 8000
+# open localhost:8000
 ```
 
 ---
@@ -89,34 +79,30 @@ streamlit run app/dashboard.py
 ```
 SG_Hackathon/
 ├── app/
-│   └── dashboard.py          # Streamlit UI
+│   ├── server.py             # FastAPI backend
+│   └── static/index.html     # Single-page dashboard
 ├── src/
 │   ├── baseline.py           # Behavioral baseline engine
 │   ├── graph_builder.py      # NetworkX graph construction
-│   ├── detector.py           # GCN + Bi-LSTM anomaly detector
-│   ├── ranker.py             # Risk scorer and MITRE mapper
-│   └── narrator.py           # Claude Fable 5 narrative generator
+│   ├── detector.py           # Bi-LSTM autoencoder
+│   ├── ranker.py             # Risk scorer + MITRE mapper
+│   └── narrator.py           # Groq LLaMA narrative generator
 ├── scripts/
-│   ├── prepare_data.py       # CERT preprocessing + context injection
-│   ├── inject_financial_context.py
-│   └── generate_demo_replay.py
-├── data/                     # gitignored : download separately
-│   ├── raw/
-│   └── processed/
-├── models/                   # gitignored
-├── CLAUDE.md
-├── ARCHITECTURE.md
-├── DATASETS.md
-├── RESEARCH.md
+│   ├── prepare_data.py       # Data pipeline
+│   ├── report.py             # Terminal CLI report
+│   └── evaluate.py           # Precision/Recall/F1 evaluation
+├── .env.example
 └── requirements.txt
 ```
 
 ---
 
-## Key Research
+## Tech Stack
 
-- [GCN + Bi-LSTM Insider Threat Detection : arxiv 2512.18483](https://arxiv.org/abs/2512.18483) : architecture reference, AUC 98.62 on CERT r5.2
-- [Paper GitHub](https://github.com/Yumlembam/Insider-Threat) : preprocessed CERT data + feature extraction code
-- [Federated Learning for Insider Threat : Scientific Reports 2025](https://www.nature.com/articles/s41598-025-04029-w)
-- [Mastercard GenAI + Graph Fraud Detection](https://newsroom.mastercard.com/news/press/2024/may/mastercard-accelerates-card-fraud-detection-with-generative-ai-technology/) : real-world validation
-- [MITRE ATT&CK for Insider Threats : Securonix](https://www.securonix.com/blog/applying-the-mitre-attck-framework-to-insider-threats/)
+| Layer | Tool |
+|---|---|
+| Backend | Python 3.11 + FastAPI |
+| ML | pandas, scikit-learn, PyTorch, NetworkX |
+| Narrative | Groq LLaMA 3.3-70B (optional) |
+| Frontend | Vanilla HTML/CSS/JS |
+| Data | PS4 official sample + SDV synthetic scale-up |
