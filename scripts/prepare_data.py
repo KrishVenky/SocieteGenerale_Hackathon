@@ -1,5 +1,5 @@
 """
-prepare_data.py — PS4 data pipeline
+prepare_data.py , PS4 data pipeline
 
 Run on real PS4 data (default):
     python scripts/prepare_data.py
@@ -48,7 +48,7 @@ args, _ = parser.parse_known_args()
 
 SYNTHETIC_MODE = args.synthetic
 
-# ── Config — paths diverge by mode ───────────────────────────────────────────
+# ── Config , paths diverge by mode ───────────────────────────────────────────
 if SYNTHETIC_MODE:
     LOGS_PATH     = ROOT / "data/synthetic/synthetic_logs.csv"
     PROFILES_PATH = ROOT / "data/synthetic/synthetic_profiles.csv"
@@ -89,7 +89,7 @@ DEMO_EVENTS = [
         "resource": "Customer_Vault",
         "resource_sensitivity": "high",
         "status": "success",
-        "source_ip": "185.234.11.47",      # external IP — never seen in baseline
+        "source_ip": "185.234.11.47",      # external IP , never seen in baseline
         "time_classification": "night",
         "is_anomaly": True,
         "anomaly_type": "pre_resignation_exfiltration",
@@ -421,7 +421,7 @@ def main():
     features_df = compute_all_features(logs, profiles, baseline_engine, graph_builder, detector, ranker)
     print(f"[ranker] scored {len(features_df):,} events")
 
-    # 6. Inject demo anomalies — only on real data (synthetic has its own labels)
+    # 6. Inject demo anomalies , only on real data (synthetic has its own labels)
     if not SYNTHETIC_MODE:
         print("\n[demo] injecting 4 labelled anomaly personas...")
         features_df = inject_demo_personas(
@@ -443,7 +443,7 @@ def main():
     features_df.to_parquet(OUT_FEATURES, index=False)
     print(f"[save] features -> {OUT_FEATURES}")
 
-    # 8. Demo replay JSONL — only for real data (scripted demo uses real personas)
+    # 8. Demo replay JSONL , only for real data (scripted demo uses real personas)
     if not SYNTHETIC_MODE:
         save_demo_replay(features_df)
 

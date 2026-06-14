@@ -29,7 +29,7 @@
 - **Paper**: Scientific Reports 2025
 - **Link**: https://www.nature.com/articles/s41598-025-04029-w
 - **Result**: Detection accuracy >90%, privacy loss <5%, communication efficiency +25%
-- **Key idea**: Each org unit trains locally, only model weights shared — no raw logs leave the department
+- **Key idea**: Each org unit trains locally, only model weights shared , no raw logs leave the department
 - **Use in project**: Architecture slide note on enterprise readiness and data sovereignty. Directly relevant to SG's multi-jurisdiction requirements. Don't implement, just design for it.
 
 ### Transformer-Based User Sequence Modeling (2025)
@@ -61,7 +61,7 @@
 - **Source**: https://newsroom.mastercard.com/news/press/2024/may/mastercard-accelerates-card-fraud-detection-with-generative-ai-technology/
 - **Result**: Doubled fraud detection speed, deployed across 3 billion cards globally
 - **Method**: Generative AI + graph technology modeling relationships between cards, merchants, transaction patterns
-- **Use in slides**: Opening hook — "We applied the same graph + GenAI architecture Mastercard deployed in production to insider threat detection."
+- **Use in slides**: Opening hook , "We applied the same graph + GenAI architecture Mastercard deployed in production to insider threat detection."
 
 ### BGL BNP Paribas ML Fraud Detection
 - **Result**: ML cut false positives by 40%
@@ -80,7 +80,7 @@
 - **Use**: Technique mapping in risk ranker
 
 ### NIST Controls Referenced in PS4
-- **GDPR Article 32**: Security of processing — data access controls
+- **GDPR Article 32**: Security of processing , data access controls
 - **NIST IR-4**: Incident handling
 - **SOX**: Controls over sensitive financial data access
 
@@ -92,10 +92,10 @@
 |---|---|---|---|---|---|
 | Session-Graph GNN | 2025 | ~99% | 99.56% | 0% | CERT AB-II |
 | **GCN + Bi-LSTM** | **2025** | **98.62%** | **100%** | **0.05%** | **CERT r5.2** |
-| Transformer (6L) | 2025 | 95% AUROC | 99.43% | — | CERT |
+| Transformer (6L) | 2025 | 95% AUROC | 99.43% | , | CERT |
 | **Our system** | **2025** | **[X]** | **[Y]** | **[Z]** | **CERT r5.2** |
 | DeepLog | 2017 | 86.41% | 81.89% | 0.19% | CERT r5.2 |
-| Isolation Forest | — | ~85% | varies | high | CERT |
+| Isolation Forest | , | ~85% | varies | high | CERT |
 
 Fill in our numbers after evaluation on CERT r5.2 ground truth.
 

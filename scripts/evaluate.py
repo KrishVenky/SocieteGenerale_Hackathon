@@ -1,5 +1,5 @@
 """
-evaluate.py — Precision / Recall / F1 reporter
+evaluate.py , Precision / Recall / F1 reporter
 
 Loads scored features from BOTH real and synthetic processed directories
 and prints a side-by-side comparison table.
@@ -151,7 +151,7 @@ def _threshold_sweep(df: pd.DataFrame, label: str, thresholds: list[int]) -> Non
 
 
 def _user_level_sweep(df: pd.DataFrame, label: str, thresholds: list[int]) -> None:
-    """User-level threshold sweep — most meaningful for UEBA evaluation."""
+    """User-level threshold sweep , most meaningful for UEBA evaluation."""
     if "user_id" not in df.columns or "is_anomaly" not in df.columns:
         return
     user_label = df.groupby("user_id")["is_anomaly"].any().astype(int)

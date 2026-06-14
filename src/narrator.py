@@ -1,7 +1,7 @@
 """
 Narrative engine: generates streaming incident reports via Groq LLaMA 3.3.
 
-Groq is used for the narrative layer only — all anomaly detection is done
+Groq is used for the narrative layer only , all anomaly detection is done
 by the ML pipeline (baseline + BiLSTM + graph). The LLM just writes the
 human-readable incident report from the structured alert dict.
 """
@@ -45,7 +45,7 @@ You are SentinelAI, Societe Generale's insider threat detection system.
 Write a concise, professional incident report for a Tier-2 security analyst.
 
 Format:
-1. Threat summary (2-3 sentences) — who, what, when, why it's suspicious
+1. Threat summary (2-3 sentences) , who, what, when, why it's suspicious
 2. Key evidence (3-4 bullet points, each starting with •)
 3. Recommended Actions: (3 bullets, starting with ▶)
 
@@ -74,12 +74,12 @@ def build_context(alert: dict) -> str:
     )
     signals_str = "\n".join(f"  - {s}" for s in signals) if signals else "  - None"
     new_ip_note = (
-        "NEW IP — not in 90-day baseline history"
+        "NEW IP , not in 90-day baseline history"
         if "is_new_ip" in signals else "Known IP"
     )
 
     return f"""\
-INCIDENT ALERT — Risk Score: {scored.get('risk_score', 0)}/100  Severity: {scored.get('severity', 'UNKNOWN')}
+INCIDENT ALERT , Risk Score: {scored.get('risk_score', 0)}/100  Severity: {scored.get('severity', 'UNKNOWN')}
 
 User:        {profile.get('username', event.get('username', 'Unknown'))}
 Role:        {profile.get('job_title', 'Unknown')} | Department: {sg_dept}
@@ -142,7 +142,7 @@ class NarratorEngine:
                 yield delta
 
     def generate(self, alert: dict) -> str:
-        """Non-streaming version — returns full narrative string."""
+        """Non-streaming version , returns full narrative string."""
         return "".join(self.stream(alert))
 
     def generate_batch(self, alerts: list[dict]) -> list[str]:

@@ -46,7 +46,7 @@ class GraphBuilder:
                 days_inactive=int(p.get("days_inactive", 0)),
             )
 
-        # Resource nodes — sensitivity from mode of all events touching that resource
+        # Resource nodes: sensitivity from mode of all events touching that resource
         for res in logs["resource"].unique():
             mask = logs["resource"] == res
             sens = logs.loc[mask, "resource_sensitivity"].mode()

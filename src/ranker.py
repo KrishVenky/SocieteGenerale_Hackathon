@@ -17,13 +17,13 @@ MITRE_RULES = [
     },
     {
         "technique_id": "T1078",
-        "technique_name": "Valid Accounts — New Location",
+        "technique_name": "Valid Accounts , New Location",
         "tactic": "Initial Access",
         "condition": lambda f: f.get("is_new_ip") and f.get("is_high_sens"),
     },
     {
         "technique_id": "T1078",
-        "technique_name": "Valid Accounts — Dormant Account",
+        "technique_name": "Valid Accounts , Dormant Account",
         "tactic": "Initial Access",
         "condition": lambda f: f.get("dormant_activation"),
     },
@@ -47,13 +47,13 @@ MITRE_RULES = [
     },
     {
         "technique_id": "T1078.004",
-        "technique_name": "Cloud Accounts — Service Account Abuse",
+        "technique_name": "Cloud Accounts , Service Account Abuse",
         "tactic": "Privilege Escalation",
         "condition": lambda f: f.get("service_acct_anomaly"),
     },
     {
         "technique_id": "T1530",
-        "technique_name": "Data from Cloud Storage Object — Cross-Dept",
+        "technique_name": "Data from Cloud Storage Object , Cross-Dept",
         "tactic": "Collection",
         "condition": lambda f: f.get("resource_scope_violation") and f.get("service_acct_anomaly"),
     },
@@ -67,7 +67,7 @@ SIGNAL_WEIGHTS: dict[str, int] = {
     "high_sens_export":             20,
     "resource_scope_violation":     30,   # raised: scope violations are high confidence (T1530)
     "service_acct_anomaly":         25,   # service accounts off-hours = critical
-    "new_resource_off_hours_admin": 30,   # T1562.001 compound — very high confidence
+    "new_resource_off_hours_admin": 30,   # T1562.001 compound , very high confidence
     "failure_burst":                40,   # raised: brute-force pattern is unambiguous (T1110)
     "dormant_activation":           15,
     "service_acct_new_resource":    25,   # service acct accessing new resource
@@ -81,7 +81,7 @@ SIGNAL_WEIGHTS: dict[str, int] = {
 
 # High-confidence anchor signals (weight >= 18).
 # Real UEBA tools (Splunk UBA, Sentinel) require at least one anchor signal for
-# a confident alert — this corroboration check dramatically reduces FP from
+# a confident alert , this corroboration check dramatically reduces FP from
 # minor-signal accumulation on normal users.
 _ANCHOR_SIGNALS: frozenset[str] = frozenset(
     s for s, w in SIGNAL_WEIGHTS.items() if w >= 18
@@ -148,7 +148,7 @@ class RiskRanker:
 
         behavioral_raw = min(100, behavioral_raw)
 
-        # Corroboration adjustment — mirrors real UEBA (Splunk UBA / Sentinel) behaviour.
+        # Corroboration adjustment , mirrors real UEBA (Splunk UBA / Sentinel) behaviour.
         # No high-confidence anchor signal: likely minor-signal noise; dampen to cut FP.
         # (No bonus for 2+ anchors: off_hours_export + high_sens_export are correlated and
         #  fire together on the same event, so they don't represent independent evidence.)

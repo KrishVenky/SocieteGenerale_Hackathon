@@ -26,7 +26,7 @@ source_ip            string      192.168.x.x (internal range)
 time_classification  category    business_hours | night | unusual_hours | weekend
 ```
 
-**No `rowcount`, `destination`, or `anomaly_marker` in actual data** — README described an idealized schema that differs from the real CSV.
+**No `rowcount`, `destination`, or `anomaly_marker` in actual data** , README described an idealized schema that differs from the real CSV.
 
 ### user_profiles.csv
 
@@ -66,7 +66,7 @@ Behavioral baselines are derived from log history, not from this profile file.
 
 ## Financial Context Injection
 
-Map PS4 generic resource names → SG-realistic system names. Applied in the narrative layer and on-screen labels only — the ML runs on original column values.
+Map PS4 generic resource names → SG-realistic system names. Applied in the narrative layer and on-screen labels only , the ML runs on original column values.
 
 ```python
 SG_RESOURCE_MAP = {
@@ -125,14 +125,14 @@ DEMO_PERSONAS = [
             "Export of high-sensitivity resource at 02:14",
             "Source IP not in 90-day IP history (external range)",
             "+1,840% above Finance peer group average for export actions",
-            "days_inactive was 59 — sudden activity spike",
+            "days_inactive was 59 , sudden activity spike",
         ],
         "mitre": "T1078",
         "risk_score": 96,
         "sg_resource": "Client Portfolio System (Calypso CRM)",
     },
     {
-        # Security developer, admin privilege — audit evasion
+        # Security developer, admin privilege , audit evasion
         "user_id": "USR00015",
         "username": "sophia.white",
         "department": "Security",
@@ -156,7 +156,7 @@ DEMO_PERSONAS = [
         "sg_resource": "Infrastructure Admin Console",
     },
     {
-        # Engineering admin, 57 days inactive — compromised/reactivated
+        # Engineering admin, 57 days inactive , compromised/reactivated
         "user_id": "USR00005",
         "username": "george.lim",
         "department": "Engineering",
@@ -197,9 +197,9 @@ DEMO_PERSONAS = [
         },
         "signals": [
             "service-account privilege level",
-            "Approved systems: EMAIL|PROD_DB only — HRIS is out-of-scope",
+            "Approved systems: EMAIL|PROD_DB only , HRIS is out-of-scope",
             "First-ever access to HRIS in account history",
-            "Query at 03:05 — outside any expected service window",
+            "Query at 03:05 , outside any expected service window",
         ],
         "mitre": "T1530",
         "risk_score": 88,
@@ -232,14 +232,14 @@ Used only for the "enterprise scale" claim on slides. All detection metrics are 
 
 - **Download**: https://kilthub.cmu.edu/articles/dataset/Insider_Threat_Test_Dataset/12841247
 - **Size**: 10.37 GB, ~32M events, 3,995 benign + 5 malicious users
-- **Use**: Architecture reference — "our approach achieves comparable AUC to SOTA on CERT r5.2"
+- **Use**: Architecture reference , "our approach achieves comparable AUC to SOTA on CERT r5.2"
 - **GitHub of SOTA paper**: https://github.com/Yumlembam/Insider-Threat (AUC 98.62, Dec 2025)
-- **Do not download for the hackathon** — too large, irrelevant to PS4 evaluation
+- **Do not download for the hackathon** , too large, irrelevant to PS4 evaluation
 
 ### LANL Unified Host & Network
 
 - **Download**: https://csr.lanl.gov/data/2017/
-- **Use**: "Our ingestion architecture handles 1B+ events" — throughput slide only
+- **Use**: "Our ingestion architecture handles 1B+ events" , throughput slide only
 - **Do not download for the hackathon**
 
 ---

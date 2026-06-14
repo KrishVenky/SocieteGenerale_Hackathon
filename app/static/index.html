@@ -280,24 +280,24 @@ hr.div{border:none;border-top:1px solid var(--brd);margin:10px 0}
 <div class="kpi-bar">
   <div class="kpi">
     <div class="kpi-lbl">Events Processed</div>
-    <div class="kpi-val kv-txt" id="k-total">—</div>
+    <div class="kpi-val kv-txt" id="k-total">--</div>
   </div>
   <div class="kpi">
     <div class="kpi-lbl">Alerts Raised</div>
-    <div class="kpi-val kv-blue" id="k-alerts">—</div>
-    <div class="kpi-sub" id="k-thresh">threshold —</div>
+    <div class="kpi-val kv-blue" id="k-alerts">--</div>
+    <div class="kpi-sub" id="k-thresh">threshold --</div>
   </div>
   <div class="kpi">
-    <div class="kpi-lbl">Critical ≥ 85</div>
-    <div class="kpi-val kv-crit" id="k-crit">—</div>
+    <div class="kpi-lbl">Critical >= 85</div>
+    <div class="kpi-val kv-crit" id="k-crit">--</div>
   </div>
   <div class="kpi">
-    <div class="kpi-lbl">High 70–84</div>
-    <div class="kpi-val kv-high" id="k-high">—</div>
+    <div class="kpi-lbl">High 70-84</div>
+    <div class="kpi-val kv-high" id="k-high">--</div>
   </div>
   <div class="kpi">
     <div class="kpi-lbl">Avg Risk Score</div>
-    <div class="kpi-val kv-txt" id="k-avg">—</div>
+    <div class="kpi-val kv-txt" id="k-avg">--</div>
     <div class="kpi-sub">/ 100</div>
   </div>
 </div>
@@ -400,7 +400,7 @@ hr.div{border:none;border-top:1px solid var(--brd);margin:10px 0}
 
         <div class="fed-box">
           <div class="fed-title">Federated Deployment Architecture</div>
-          <div class="fed-desc">Each department trains locally — no raw logs cross department boundaries. Directly addresses SG's cross-jurisdiction data sovereignty requirements across business units.</div>
+          <div class="fed-desc">Each department trains locally, no raw logs cross department boundaries. Directly addresses SG's cross-jurisdiction data sovereignty requirements across business units.</div>
         </div>
       </div>
     </div>
@@ -622,7 +622,7 @@ function buildCard(alert, expanded) {
 
     <!-- Behavioral baseline chart -->
     <div class="baseline-row" id="bl-row-${idx}">
-      <div class="sec-title">Behavioral Baseline — Daily Activity (${ev.user_id||''})</div>
+      <div class="sec-title">Behavioral Baseline: Daily Activity (${ev.user_id||''})</div>
       <div style="position:relative;height:75px"><canvas id="bl-${idx}"></canvas></div>
     </div>
   </div>
@@ -923,7 +923,7 @@ function renderArch() {
     {color:'#eab308',title:'5. MITRE ATT&CK Mapper',
      desc:'7 techniques / 6 tactics: T1048 · T1078 · T1110 · T1530 · T1562.001 · T1078.004'},
     {color:'#22c55e',title:'6. LLaMA 3.3-70B Narrative (Groq)',
-     desc:'Free tier · ~200 tok/s streaming · structured context injection only — LLM writes the report, ML pipeline does the detection'},
+     desc:'Free tier · ~200 tok/s streaming · structured context injection only. LLM writes the report, ML pipeline does the detection'},
   ];
   document.getElementById('arch-pipe').innerHTML = stages.map((s,i) => `
     <div class="pipe-stage" style="border-left-color:${s.color}">
@@ -934,10 +934,10 @@ function renderArch() {
   `).join('');
 
   const diffs = [
-    {icon:'🔗',title:'Peer group context',  desc:'Compare vs department cohort, not just self-baseline — how Splunk UBA / Microsoft Sentinel actually work'},
+    {icon:'🔗',title:'Peer group context',  desc:'Compare vs department cohort, not just self-baseline. How Splunk UBA / Microsoft Sentinel actually work'},
     {icon:'🔄',title:'Bi-LSTM sequence',    desc:'Temporal pattern learning over event sequences, not point-in-time threshold rules'},
     {icon:'📊',title:'Graph embeddings',    desc:'Shared-resource implicit graph captures lateral movement and cross-department anomalies'},
-    {icon:'⚖️', title:'Corroboration logic',desc:'Multi-signal events scored higher; zero-anchor events dampened — reduces FP by ~70% vs rule engine'},
+    {icon:'⚖️', title:'Corroboration logic',desc:'Multi-signal events scored higher; zero-anchor events dampened, reduces FP by ~70% vs rule engine'},
     {icon:'🏦',title:'Financial context',   desc:'Generic resource names mapped to SG-specific systems: Calypso CRM, Murex MX.3, SAP FI/CO'},
   ];
   document.getElementById('arch-diffs').innerHTML = diffs.map(d => `

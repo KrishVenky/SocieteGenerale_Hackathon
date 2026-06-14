@@ -209,8 +209,8 @@ async def take_action(payload: dict):
     action = payload.get("action", "")
     username = payload.get("username", "unknown")
     messages = {
-        "freeze": f"Account {username} frozen — AD session revoked, IT Security notified.",
-        "escalate": "Incident escalated to CISO — ticket #INC-2026-0471 opened in ServiceNow.",
-        "audit": "Audit log snapshot preserved to immutable S3 — chain of custody maintained.",
+        "freeze": f"Account {username} frozen. AD session revoked, IT Security notified.",
+        "escalate": "Incident escalated to CISO. Ticket #INC-2026-0471 opened in ServiceNow.",
+        "audit": "Audit log snapshot preserved to immutable S3. Chain of custody maintained.",
     }
     return {"status": "success", "message": messages.get(action, "Action completed.")}

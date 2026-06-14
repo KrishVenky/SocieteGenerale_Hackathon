@@ -2,7 +2,7 @@
 
 ## System Overview
 
-Two-stage pipeline: statistical/ML detection first, LLM narrative second. The LLM never touches raw logs — it receives structured, pre-filtered anomaly context only.
+Two-stage pipeline: statistical/ML detection first, LLM narrative second. The LLM never touches raw logs , it receives structured, pre-filtered anomaly context only.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐

@@ -1,4 +1,4 @@
-# SG Hackathon — Insider Threat Detection System
+# SG Hackathon - Insider Threat Detection System
 
 **Societe Generale Hackathon | PS4: Data Access Audit & Insider Threat Detection**
 
@@ -31,7 +31,7 @@ Access Event Stream
 
 ## Dataset
 
-- **Base**: CMU CERT Insider Threat Dataset r5.2 — industry standard benchmark (3,995 users, 5 labeled insiders)
+- **Base**: CMU CERT Insider Threat Dataset r5.2 : industry standard benchmark (3,995 users, 5 labeled insiders)
 - **Enriched**: Financial context injection (Murex, Bloomberg, SWIFT, Calypso system names; sensitivity tiers; business units)
 - **Scale**: SDV synthetic scale-up to 50k users preserving CERT distributions
 - **Reference**: LANL Unified Host & Network Dataset for enterprise-scale architecture validation
@@ -100,7 +100,7 @@ SG_Hackathon/
 │   ├── prepare_data.py       # CERT preprocessing + context injection
 │   ├── inject_financial_context.py
 │   └── generate_demo_replay.py
-├── data/                     # gitignored — download separately
+├── data/                     # gitignored : download separately
 │   ├── raw/
 │   └── processed/
 ├── models/                   # gitignored
@@ -115,8 +115,8 @@ SG_Hackathon/
 
 ## Key Research
 
-- [GCN + Bi-LSTM Insider Threat Detection — arxiv 2512.18483](https://arxiv.org/abs/2512.18483) — architecture reference, AUC 98.62 on CERT r5.2
-- [Paper GitHub](https://github.com/Yumlembam/Insider-Threat) — preprocessed CERT data + feature extraction code
-- [Federated Learning for Insider Threat — Scientific Reports 2025](https://www.nature.com/articles/s41598-025-04029-w)
-- [Mastercard GenAI + Graph Fraud Detection](https://newsroom.mastercard.com/news/press/2024/may/mastercard-accelerates-card-fraud-detection-with-generative-ai-technology/) — real-world validation
-- [MITRE ATT&CK for Insider Threats — Securonix](https://www.securonix.com/blog/applying-the-mitre-attck-framework-to-insider-threats/)
+- [GCN + Bi-LSTM Insider Threat Detection : arxiv 2512.18483](https://arxiv.org/abs/2512.18483) : architecture reference, AUC 98.62 on CERT r5.2
+- [Paper GitHub](https://github.com/Yumlembam/Insider-Threat) : preprocessed CERT data + feature extraction code
+- [Federated Learning for Insider Threat : Scientific Reports 2025](https://www.nature.com/articles/s41598-025-04029-w)
+- [Mastercard GenAI + Graph Fraud Detection](https://newsroom.mastercard.com/news/press/2024/may/mastercard-accelerates-card-fraud-detection-with-generative-ai-technology/) : real-world validation
+- [MITRE ATT&CK for Insider Threats : Securonix](https://www.securonix.com/blog/applying-the-mitre-attck-framework-to-insider-threats/)

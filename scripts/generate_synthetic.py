@@ -1,8 +1,8 @@
 """
-generate_synthetic.py — Rule-based synthetic data generator
+generate_synthetic.py , Rule-based synthetic data generator
 
 Produces realistic enterprise access log data with labeled anomalies.
-Kept clearly separate from the real PS4 dataset — different user ID range,
+Kept clearly separate from the real PS4 dataset , different user ID range,
 different output directory, explicit data_source column.
 
 Outputs (gitignored):
@@ -231,7 +231,7 @@ def _time_class_to_hour(tc: str) -> int:
         return random.choices([7, 8, 18, 19, 20, 21], weights=[1,1,2,2,2,1])[0]
     elif tc == "night":
         return random.choices([0,1,2,3,4,22,23], weights=[2,2,2,1,1,1,1])[0]
-    else:  # weekend — any hour
+    else:  # weekend , any hour
         return random.randint(8, 20)
 
 def _ip_for_user(user_idx: int, dept: str) -> str:
@@ -362,7 +362,7 @@ def generate_normal_events(profile: pd.Series, arch: dict) -> list[dict]:
 # ── Anomaly injection ─────────────────────────────────────────────────────────
 
 def inject_off_hours_export(profile: pd.Series) -> list[dict]:
-    """T1048 — export high-sensitivity data at night from a new IP."""
+    """T1048 , export high-sensitivity data at night from a new IP."""
     ts = START_DATE + timedelta(days=random.randint(200, 340),
                                 hours=random.randint(1, 4),
                                 minutes=random.randint(0, 59))
@@ -386,7 +386,7 @@ def inject_off_hours_export(profile: pd.Series) -> list[dict]:
 
 
 def inject_brute_force(profile: pd.Series) -> list[dict]:
-    """T1110 — multiple failures then success."""
+    """T1110 , multiple failures then success."""
     ts = START_DATE + timedelta(days=random.randint(100, 300), hours=random.randint(2, 5))
     resource = random.choice(["Admin_Console", "PROD_DB", "SIEM"])
     events = []
@@ -420,7 +420,7 @@ def inject_brute_force(profile: pd.Series) -> list[dict]:
 
 
 def inject_scope_violation(profile: pd.Series) -> list[dict]:
-    """T1530 — access resource that requires a token not in systems_access."""
+    """T1530 , access resource that requires a token not in systems_access."""
     approved = set(profile["systems_access"].split("|"))
     # Find a resource whose required token they don't have
     out_of_scope = [r for r, tok in RESOURCE_TO_TOKEN.items() if tok not in approved]
@@ -443,7 +443,7 @@ def inject_scope_violation(profile: pd.Series) -> list[dict]:
 
 
 def inject_dormant_export(profile: pd.Series, all_events: list[dict]) -> list[dict]:
-    """T1078 — user who was inactive suddenly exports high-sensitivity data."""
+    """T1078 , user who was inactive suddenly exports high-sensitivity data."""
     # Find last event timestamp, then inject after a 60+ day gap
     user_events = [e for e in all_events if e["user_id"] == profile["user_id"]]
     if not user_events:
@@ -467,7 +467,7 @@ def inject_dormant_export(profile: pd.Series, all_events: list[dict]) -> list[di
 
 
 def inject_service_acct_night(profile: pd.Series) -> list[dict]:
-    """T1078.004 — service account accessing unexpected resource off-hours."""
+    """T1078.004 , service account accessing unexpected resource off-hours."""
     ts = START_DATE + timedelta(days=random.randint(100, 300), hours=random.randint(0, 5))
     # Access something clearly outside their archetype
     dept = profile["department"]
@@ -520,7 +520,7 @@ def main():
         normal = generate_normal_events(profile, ARCHETYPES[profile["department"]])
         all_events.extend(normal)
 
-        # Inject anomaly for selected users — each gets 2 different types
+        # Inject anomaly for selected users , each gets 2 different types
         if profile["user_id"] in anomaly_user_ids:
             atypes_available = list(ANOMALY_INJECTORS.keys())
             # Ensure no service-account-only types for non-service accounts

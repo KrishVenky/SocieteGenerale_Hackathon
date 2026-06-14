@@ -2,7 +2,7 @@
 Behavioral baseline engine.
 
 Derives per-user rolling statistics from raw log history.
-No pre-computed profiles — everything comes from event data.
+No pre-computed profiles. Everything comes from event data.
 """
 
 import math
@@ -182,7 +182,7 @@ class BaselineEngine:
         # ── Compound flags ────────────────────────────────────────────────────
         f["off_hours_export"] = f["is_off_hours"] and f["is_export"]
         f["high_sens_export"] = f["is_high_sens"] and f["is_export"]
-        # admin_operation at off-hours (T1562.001 — Defense Evasion)
+        # admin_operation at off-hours (T1562.001, Defense Evasion)
         f["off_hours_admin"] = f["is_off_hours"] and f["is_admin"]
         # new resource + admin + off-hours combined (high confidence T1562.001)
         f["new_resource_off_hours_admin"] = f["is_new_resource"] and f["is_off_hours"] and f["is_admin"]

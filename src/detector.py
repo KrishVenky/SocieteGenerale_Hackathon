@@ -139,7 +139,7 @@ class AnomalyDetector:
 
         sequences = self._build_sequences(logs)
         if len(sequences) < 4:
-            print("[detector] too few sequences to train — skipping LSTM")
+            print("[detector] too few sequences to train, skipping LSTM")
             return self
 
         X = torch.tensor(np.array(sequences), dtype=torch.float32).to(self.device)
@@ -213,7 +213,7 @@ class AnomalyDetector:
         return float(min(1.0, error / max(self._threshold, 1e-8)))
 
     def get_latent(self, events: list) -> np.ndarray:
-        """Latent vector for a user's event window — useful for graph embedding concat."""
+        """Latent vector for a user's event window, useful for graph embedding concat."""
         if self.model is None:
             return np.zeros(self.latent_dim, dtype=np.float32)
         arr = self._pad(events)

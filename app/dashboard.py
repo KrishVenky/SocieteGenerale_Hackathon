@@ -1,5 +1,5 @@
 """
-SentinelAI — Insider Threat Detection Dashboard
+SentinelAI , Insider Threat Detection Dashboard
 Societe Generale Hackathon · PS4
 
 Run:
@@ -31,7 +31,7 @@ from src.narrator import NarratorEngine, SG_RESOURCE_MAP, SG_DEPT_MAP
 # ── Page config ───────────────────────────────────────────────────────────────
 
 st.set_page_config(
-    page_title="SentinelAI — Insider Threat",
+    page_title="SentinelAI , Insider Threat",
     page_icon="🛡",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -302,9 +302,9 @@ def render_incident_detail(alert: dict, df: pd.DataFrame | None, key_suffix: str
         action_key = f"action_{_k}"
         c1, c2 = st.columns(2)
         if c1.button("Freeze Account", key=f"freeze_{_k}"):
-            st.session_state[action_key] = f"✅ Account {event['username']} frozen — AD session revoked"
+            st.session_state[action_key] = f"✅ Account {event['username']} frozen , AD session revoked"
         if c2.button("Escalate to CISO", key=f"escalate_{_k}"):
-            st.session_state[action_key] = "✅ Escalated to CISO — ticket #INC-2026-0471 opened"
+            st.session_state[action_key] = "✅ Escalated to CISO , ticket #INC-2026-0471 opened"
         if st.button("Preserve Audit Trail", key=f"audit_{_k}"):
             st.session_state[action_key] = "✅ Audit log snapshot preserved to immutable S3"
         if action_msg := st.session_state.get(action_key):
@@ -321,7 +321,7 @@ def render_incident_detail(alert: dict, df: pd.DataFrame | None, key_suffix: str
             )
 
     if df is not None:
-        st.markdown("#### Behavioral Baseline — Daily Activity")
+        st.markdown("#### Behavioral Baseline , Daily Activity")
         st.plotly_chart(baseline_chart(df, event["user_id"]), use_container_width=True,
                         key=f"baseline_{_k}")
 
@@ -358,11 +358,11 @@ def render_architecture() -> None:
     with col1:
         st.markdown("#### Key Differentiators")
         st.markdown("""
-- **Peer group context** — compare vs department cohort, not just self-baseline (how Splunk UBA works)
-- **Bi-LSTM sequence modeling** — temporal pattern learning, not just point-in-time rules
-- **GCN-inspired graph embeddings** — shared-resource peer implicit graph captures lateral movement
-- **Corroboration scoring** — multi-signal incidents scored higher; no-anchor incidents dampened
-- **Financial context injection** — generic resource names mapped to SG-specific systems
+- **Peer group context** , compare vs department cohort, not just self-baseline (how Splunk UBA works)
+- **Bi-LSTM sequence modeling** , temporal pattern learning, not just point-in-time rules
+- **GCN-inspired graph embeddings** , shared-resource peer implicit graph captures lateral movement
+- **Corroboration scoring** , multi-signal incidents scored higher; no-anchor incidents dampened
+- **Financial context injection** , generic resource names mapped to SG-specific systems
         """)
 
     with col2:
@@ -375,7 +375,7 @@ def render_architecture() -> None:
 | Mastercard GenAI + Graph (May 2024) | 2× fraud detection, 3B cards |
 | DeepLog (baseline) | AUC 86.41 on CERT r5.2 |
 
-**Architecture designed for federated deployment** — each department trains locally, no raw logs cross department boundaries. Directly relevant to SG's cross-jurisdiction data sovereignty requirements.
+**Architecture designed for federated deployment** , each department trains locally, no raw logs cross department boundaries. Directly relevant to SG's cross-jurisdiction data sovereignty requirements.
         """)
 
 
@@ -383,7 +383,7 @@ def render_architecture() -> None:
 
 def main():
     st.markdown(
-        "## SentinelAI — Insider Threat Detection  "
+        "## SentinelAI , Insider Threat Detection  "
         "<span style='font-size:0.8rem;color:#aaa'>Societe Generale · PS4 · "
         "GCN + Bi-LSTM + Peer Group</span>",
         unsafe_allow_html=True,
@@ -502,7 +502,7 @@ def main():
     with tab_stats:
       try:
 
-        # Performance numbers — actual measured metrics
+        # Performance numbers , actual measured metrics
         st.markdown("### System Performance (Measured on Synthetic Benchmark, threshold=78)")
         m1, m2, m3, m4 = st.columns(4)
         m1.metric("Precision",     "80.6%",  delta="PS4 requires >= 75% ✓", delta_color="normal")
